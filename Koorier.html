@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Inventory Tracker problem</title>
+</head>
+<body>
+    <script>
+// Product class
+class Product {
+    constructor(id, name, quantity, reorderThreshold) {
+        this.id = id;
+        this.name = name;
+        this.quantity = quantity;
+        this.reorderThreshold = reorderThreshold;
+    }
+
+    increaseStock(amount) {
+        if (amount > 0) {
+            this.quantity += amount;
+        }
+    }
+
+    decreaseStock(amount) {
+        if (amount > 0 && amount <= this.quantity) {
+            this.quantity -= amount;
+            return true;
+        }
+        return false;
+    }
+}
+
+// AlertService interface (observer)
+class AlertService {
+    triggerRestockAlert(product) {
+        console.log(`⚠️ Restock Alert: Low stock for ${product.name} – only ${product.quantity} left!`);
+    }
+}
+
+// Warehouse class (subject)
+class Warehouse {
+    constructor() {
+        this.products = new Map(); // acts like a HashMap
+        this.alertService = new AlertService(); // simple observer
+    }
+
+    addProduct(id, name, quantity, threshold) {
+        if (!this.products.has(id)) {
+            const product = new Product(id, name, quantity, threshold);
+            this.products.set(id, product);
+            console.log(`✅ Product added: ${name}`);
+        } else {
+            console.log(`❌ Error: Product with ID ${id} already exists.`);
+        }
+    }
+
+    receiveShipment(id, quantity) {
+        const product = this.products.get(id);
+        if (product) {
+            product.increaseStock(quantity);
+            console.log(`📦 Shipment received: ${quantity} units of ${product.name}`);
+        } else {
+            console.log(`❌ Error: Product ID ${id} not found.`);
+        }
+    }
+
+    fulfillOrder(id, quantity) {
+        const product = this.products.get(id);
+        if (product) {
+            const success = product.decreaseStock(quantity);
+            if (success) {
+                console.log(`📤 Order fulfilled: ${quantity} units of ${product.name}`);
+                if (product.quantity < product.reorderThreshold) {
+                    this.alertService.triggerRestockAlert(product);
+                }
+            } else {
+                console.log(`❌ Error: Not enough stock to fulfill order for ${product.name}`);
+            }
+        } else {
+            console.log(`❌ Error: Product ID ${id} not found.`);
+        }
+    }
+
+    showInventory() {
+        console.log("\n📋 Current Inventory:");
+        this.products.forEach(product => {
+            console.log(`${product.name} (ID: ${product.id}) – Quantity: ${product.quantity}`);
+        });
+    }
+}
+// Create a warehouse instance
+const warehouse = new Warehouse();
+
+// Step 1: Add a product
+warehouse.addProduct("P001", "Laptop", 0, 5);
+
+// Step 2: Receive shipment
+warehouse.receiveShipment("P001", 10); // Now quantity is 10
+
+// Step 3: Fulfill 6 orders
+warehouse.fulfillOrder("P001", 6); // Remaining = 4 → alert triggered
+
+// Step 4: Show current inventory
+warehouse.showInventory();
+
+// Additional tests
+warehouse.fulfillOrder("P001", 5); // Not enough stock
+warehouse.receiveShipment("INVALID_ID", 5); // Invalid product ID
+
+</script>
+</body>
+</html>
